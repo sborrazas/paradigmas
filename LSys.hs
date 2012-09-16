@@ -2,6 +2,8 @@ module LSys where
 
 import Data.Word
 import Graphics.HGL hiding (Angle)
+import List
+import Data.Maybe
 
 data Move = F | L | R | Pi | Pd | Ci | Cd | Bo | Bc | N
  deriving (Show,Read,Eq)
@@ -58,24 +60,35 @@ maps  (LSys _ _ _ _ _ _ _ _ m) = m
 
 -- Funciones a definir
 -- 1
+--  Recibe una lista de reglas, un simbolo y devuelve la palabra por la cual se reescribe el simbolo dado segun la lista de reglas dada.
+--  En caso de que no exista ninguna regla para el simbolo ingresado esta funcion devuelve la palabra formada unicamente por el simbolo recibido.
 lookupRule :: Rules -> Char -> String
-lookupRule = undefined
+lookupRule reglas c = snd (fromMaybe (undefined, [c]) (find (\x -> fst x == c) reglas))
 
 -- 2
+--  Recibe una lista de mapeos y un simbolo, y devuelve el movimiento de la tortuga que se corresponde al simbolo ingresado.
+--  En caso de que no exista ningun mapeo definido para el simbolo dado, esta funcion devuelve el movimiento nulo N.
 lookupMaps :: Maps -> Char -> Move
-lookupMaps = undefined
+lookupMaps mapeos c = snd (fromMaybe (undefined, N) (find (\x -> fst x == c) mapeos))
 
 -- 3
+--  Esta funcion recibe una lista de reglas y una palabra, y aplica una reescritura a cada simbolo de la palabra.
 expandOne :: Rules -> String -> String
-expandOne = undefined
+expandOne _ [] = []
+expandOne reglas (c:palabra) = (lookupRule reglas c) ++ expandOne reglas palabra
 
 -- 4
+--  Recibe una lista de reglas, una palabra y un natural n, y devuelve la palabra resultante de aplicar n pasos de reescritura.
 expandN :: Rules -> String -> Int -> String
-expandN = undefined
+expandN _ s 0 = s
+expandN reglas palabra i = expandN reglas (expandOne reglas palabra) (i - 1)
 
 -- 5
+--  Recibe una lista de mapeos y una palabra, y devuelve la lista de movimientos resultante de aplicar a cada simbolo
+--  el mapeo correspondiente en la lista dada.
 rewriteMaps :: Maps -> String -> [Move]
-rewriteMaps = undefined
+rewriteMaps _ [] = []
+rewriteMaps mapeos (c:palabra) = (lookupMaps mapeos c):(rewriteMaps mapeos palabra)
 
 
 -- Ejemplos de L-Systems
