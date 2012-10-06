@@ -85,19 +85,20 @@ move m oldState stack myLsys = (newState, stack)
 lsysMoves :: LSys -> Int -> [Move]
 lsysMoves myLsys i = rewriteMaps (maps myLsys) (expandN (rules myLsys) (seed myLsys) i)
 
-
 -- 8
 --  Recibe un L-System, un estado de una tortuga, y una lista de movimientos.
 --  Devuelve la lista de lineas resultante de aplicar los movimientos al estado dado para el L- System dado.
 turtleLines :: LSys -> TurtleState -> [Move] -> [ColouredLine]
-turtleLines myLsys state moves = coloredLines
+turtleLines myLsys initialState moves = [(fromV, toV, fromC, fromW) | ((fromV, _, fromC, fromW), (toV, _, _, _)) <- filteredStates]
   where
-    getMovementStatesList :: (TurtleState, StackTurtleStates) -> Move -> ((TurtleState, StackTurtleStates), (TurtleState, StackTurtleStates))
-    getMovementStatesList (lastState, lastStack) movement = (newMovement, newMovement)
+    getMovementStatesList :: [(Move, (TurtleState, StackTurtleStates))] -> [Move] -> [(Move, (TurtleState, StackTurtleStates))]
+    getMovementStatesList oldStates [] = oldStates
+    getMovementStatesList oldStates (movement:xs) = getMovementStatesList (oldStates ++ [(movement, move movement lastState lastStack myLsys)]) xs
       where
-        newMovement = move movement lastState lastStack myLsys
-    states = map (\x -> fst x) (snd (mapAccumL getMovementStatesList (state, []) moves))
-    coloredLines = [(fromVertex, toVertex, fromColor, fromWidth) | ((fromVertex, _, fromColor, fromWidth), (toVertex, _, _, _)) <- zip states (tail states)]
+        (lastState, lastStack) = snd (last oldStates)
+    states = getMovementStatesList [(F, (initialState, []))] (filter (/= N) moves)
+    zippedStates = zip states (tail states)
+    filteredStates = [(fromState, toState) | ((m1, (fromState, fromStack)), (m2, (toState, toStack))) <- zippedStates, m2 /= Bc]
 
 -- 9
 lsys :: LSys -> Int -> IO ()
