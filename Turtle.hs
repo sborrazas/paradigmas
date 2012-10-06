@@ -89,7 +89,7 @@ lsysMoves myLsys i = rewriteMaps (maps myLsys) (expandN (rules myLsys) (seed myL
 --  Recibe un L-System, un estado de una tortuga, y una lista de movimientos.
 --  Devuelve la lista de lineas resultante de aplicar los movimientos al estado dado para el L- System dado.
 turtleLines :: LSys -> TurtleState -> [Move] -> [ColouredLine]
-turtleLines myLsys initialState moves = [(fromV, toV, fromC, fromW) | ((fromV, _, fromC, fromW), (toV, _, _, _)) <- filteredStates]
+turtleLines myLsys initialState moves = filteredStates
   where
     getMovementStatesList :: [(Move, (TurtleState, StackTurtleStates))] -> [Move] -> [(Move, (TurtleState, StackTurtleStates))]
     getMovementStatesList oldStates [] = oldStates
@@ -98,7 +98,7 @@ turtleLines myLsys initialState moves = [(fromV, toV, fromC, fromW) | ((fromV, _
         (lastState, lastStack) = snd (last oldStates)
     states = getMovementStatesList [(F, (initialState, []))] (filter (/= N) moves)
     zippedStates = zip states (tail states)
-    filteredStates = [(fromState, toState) | ((m1, (fromState, fromStack)), (m2, (toState, toStack))) <- zippedStates, m2 /= Bc]
+    filteredStates = [(fromV, toV, fromC, fromW) | ((m1, ((fromV, _, fromC, fromW), fromStack)), (m2, ((toV, _, _, _), toStack))) <- zippedStates, m2 /= Bc]
 
 -- 9
 lsys :: LSys -> Int -> IO ()
