@@ -15,10 +15,6 @@ parseToken = parseNum `alt` parseStr `alt` parseMove `alt` parseChr `alt` parseA
 
 -- Funciones a definir
 
---parserSeparadores s = filter (\(x, y) -> not (null x) ) demo
---  where
---    demo = (list (spotWhile (\x -> x /= ' ' && x /= '\n') >*> (token ' ' `alt` token '\n') )) s
-
 -- 10
 tokenizeStr :: [Char] -> String -> [String]
 tokenizeStr _ [] = []
@@ -28,28 +24,21 @@ tokenizeStr lexico xs = if null principio then siguiente else if (length resto) 
     principio = takeWhile (\x -> not (any (==x) lexico)) xs
     siguiente = tokenizeStr lexico (tail resto)
 
---tokenizeStr lexico [] = []
---tokenizeStr lexico (x:xs) = if any (==x) lexico then nextTok ++ [""] else nextTok ++ [x:(last nextTok :: String)]
---  where
---    nextTok = tokenizeStr lexico xs
-
-
 -- 11
 parseNum :: Parse Char Token
-parseNum = (neList parseDig) `build` charlistToExpr
+parseNum = ((optional(token '-')) >*> (neList parseDig)) `build` charlistToExpr
   where
     isDigit :: Char -> Bool
     isDigit c = c >= '0' && c <= '9'
     parseDig :: Parse Char Char
     parseDig = spot isDigit
-    charlistToExpr xs = Num (read xs :: Int)
+    charlistToExpr(x,xs) = Num (read (x++xs)::Int)
 
 parseStr :: Parse Char Token
 parseStr = ((token '"') >*> (spotWhile (\x -> x /= '"' )) >*> (token '"')) `build` convertidorStr
   where
     convertidorStr (c1, (str1, c2)) = Str str1
 
---F | L | R | Pi | Pd | Ci | Cd | Bo | Bc | N
 parseMove :: Parse Char Token
 parseMove = (((token 'F') `build` convertidorMv1)
   `alt` ((token 'L') `build` convertidorMv1)
@@ -81,32 +70,71 @@ parseEquiv = token '~' `build` (\x -> Equiv)
 
 -- 12
 recognizeTokens :: [String] -> [Token]
-recognizeTokens xs = map (\x -> fst ( head (parserMap x)) ) xs
-  where parserMap = parseNum `alt` parseStr `alt` parseMove `alt` parseChr `alt` parseArrow `alt` parseEquiv
+recognizeTokens xs = map (\x -> fst (last (parseToken x))) xs
 
 -- 13
---([Token],(Token,([(Token,(Token,Token))], ([(Token,Token)],Token)))), [Char]
---Lsys>>  Angle DeltaAngle PenWidth DeltaPenWidth RGB DeltaRGB Seed Rules Maps
---type Rule = (Char, String)
---type Rules = [Rule]
---type Map = (Char, Move)
---
-parseLSys :: Parse Token LSys
-parseLSys = (nTimes 10 parseNum) >*>
-  parseStr >*>
-  (list (parseChr >*> parseArrow >*> parseStr)) >*>
-  (list (parseChr >*> parseEquiv) >*> parseMove)
-  where
-    reglasF r = [(ch1, str1) | (Chr ch1, (_, Str str1)) <- r]
-    mapeosF m = [(ch1, mv1) | (Chr ch1, (_, Mv mv1)) <- m]
-    toWord8 :: Token -> Word8
-    toWord8 (Num n) = toEnum (fromInteger (toInteger n)) :: Word8
-    toNum :: Token -> Int
-    toNum (Num n) = n
-    convertidorLsys (numeros, (Str semilla, (reglas, (mapeos)))) = LSys (toNum numeros!!0)
-      (toNum (numeros!!1)) (toNum (numeros!!2)) (toNum (numeros!!3)) (RGB (toWord8 (numeros!!4)) (toWord8 (numeros!!5)) (toWord8 (numeros!!6))) ((toNum (numeros!!7)), (toNum (numeros!!8)), (toNum (numeros!!9))) semilla (reglasF reglas) (mapeosF mapeos)
+parseIntToken :: Parse Token Int
+parseIntToken ((Num x):xs) = [(x, xs)]
+parseIntToken x = []
 
+parseStrToken :: Parse Token String
+parseStrToken ((Str x):xs) = [(x, xs)]
+parseStrToken x = []
+
+parseMoveToken :: Parse Token Move
+parseMoveToken ((Mv x):xs) = [(x, xs)]
+parseMoveToken x = []
+
+parseChrToken :: Parse Token Char
+parseChrToken ((Chr x):xs) = [(x, xs)]
+parseChrToken x = []
+
+parseArrowToken :: Parse Token Token
+parseArrowToken (Arrow:xs) = [(Arrow, xs)]
+parseArrowToken x = []
+
+parseEquivToken :: Parse Token Token
+parseEquivToken (Equiv:xs) = [(Equiv, xs)]
+parseEquivToken x = []
+
+parseLSys :: Parse Token LSys
+parseLSys = (
+    (nTimes 10 parseIntToken) >*>
+    parseStrToken >*>
+    (list (parseChrToken >*> parseArrowToken >*> parseStrToken)) >*>
+    (list (parseChrToken >*> parseEquivToken >*> parseMoveToken))
+  ) `build` convertidorLsys
+  where
+    reglasF r = [(ch1, str1) | (ch1, (_, str1)) <- r]
+    mapeosF m = [(ch1, mv1) | (ch1, (_, mv1)) <- m]
+    toWord8 :: Int -> Word8
+    toWord8 n = (read (show n)) :: Word8
+    toFloat :: Int -> Float
+    toFloat n = fromIntegral n
+    convertidorLsys (numeros, (semilla, (reglas, mapeos))) = LSys
+      (toFloat (numeros!!0)) -- Angle
+      (toFloat (numeros!!1)) -- DeltaAngle
+      (numeros!!2) -- PenWidth
+      (numeros!!3) -- DeltaPenWidth
+      (RGB (toWord8 (numeros!!4)) (toWord8 (numeros!!5)) (toWord8 (numeros!!6))) -- RGB
+      ((numeros!!7), (numeros!!8), (numeros!!9)) -- DeltaRGB
+      semilla -- Seed
+      (reglasF reglas) -- Rules
+      (mapeosF mapeos) -- Maps
+
+--parseLSys :: Parse Token LSys
+--parseLSys = ((nTimes 10 parseNum) >*> parseStr >*> (list (parseChr >*> parseArrow >*> parseStr)) >*> (list (parseChr >*> parseEquiv >*> parseMove))) `build` convertidorLsys
+--  where
+--    reglasF r = [(ch1, str1) | (Chr ch1, (_, Str str1)) <- r]
+--    mapeosF m = [(ch1, mv1) | (Chr ch1, (_, Mv mv1)) <- m]
+--    toWord8 :: Int -> Word8
+--    toWord8 n = (read (show n)) :: Word8
+--    toNum :: Token -> Int
+--    toNum (Num n) = n
+--    toFloat :: Token -> Float
+--    toFloat (Num n) = fromIntegral n
+--    convertidorLsys (numeros, (Str semilla, (reglas, mapeos))) = LSys (toFloat (numeros!!0)) (toFloat (numeros!!1)) (toNum (numeros!!2)) (toNum (numeros!!3)) (RGB (toWord8 (toNum (numeros!!4))) (toWord8 (toNum (numeros!!5))) (toWord8 (toNum (numeros!!6)))) ((toNum (numeros!!7)), (toNum (numeros!!8)), (toNum (numeros!!9))) semilla (reglasF reglas) (mapeosF mapeos)
 
 -- 14
 readLSys :: String -> LSys
-readLSys = undefined
+readLSys contenido = (topLevel parseLSys) (recognizeTokens (tokenizeStr " \n" contenido))
