@@ -30,22 +30,21 @@ subtractColor :: RGB -> DeltaRGB -> RGB
 subtractColor rgb (dr, dg, db) = sumColor rgb (-dr, -dg, -db)
 
 -- Helpers
+-- Rotaciones (L, R)
 rotateLeft :: TurtleState -> LSys -> TurtleState
--- rotateLeft _ _ = undefined
--- rotateLeft (position, angle, rgb, width) myLsys = (position, mod (angle + (deltaAngle myLsys)) 360, rgb, width)
 rotateLeft (position, angle, rgb, width) myLsys = (position, angle + (deltaAngle myLsys), rgb, width)
 
 rotateRight :: TurtleState -> LSys -> TurtleState
--- rotateRight _ _ = undefined
--- rotateRight (position, angle, rgb, width) myLsys = (position, mod (angle + 360 - deltaAngle myLsys) 360, rgb, width)
 rotateRight (position, angle, rgb, width) myLsys = (position, angle + 360 - deltaAngle myLsys, rgb, width)
 
+-- F
 moveForward :: TurtleState -> LSys -> TurtleState
 moveForward ((currentX, currentY), angle, rgb, width) _ = ((newX, newY), angle, rgb, width)
   where
     newX = currentX + cos (radians angle)
     newY = currentY + sin (radians angle)
 
+-- PenWidth (Pi, Pd)
 increasePenWidth :: TurtleState -> LSys -> TurtleState
 increasePenWidth (p, a, rgb, width) myLsys = (p, a, rgb, width + deltaPenWidth myLsys)
 
@@ -54,15 +53,18 @@ decreasePenWidth (p, a, rgb, width) myLsys = (p, a, rgb, if width >= dPenWidth t
   where
     dPenWidth = deltaPenWidth myLsys
 
+-- Colour (Ci, Cd)
 increaseColor :: TurtleState -> LSys -> TurtleState
 increaseColor (p, a, rgb, width) myLsys = (p, a, sumColor rgb (deltaColor myLsys), width)
 
 decreaseColor :: TurtleState -> LSys -> TurtleState
 decreaseColor (p, a, rgb, width) myLsys = (p, a, subtractColor rgb (deltaColor myLsys), width)
 
+-- Mapea Moves con funciones que ejecutan el movimento
 moveExecuteMap :: [(Move, TurtleState -> LSys -> TurtleState)]
 moveExecuteMap = [(F, moveForward), (L, rotateLeft), (R, rotateRight), (Pi, increasePenWidth), (Pd, decreasePenWidth), (Ci, increaseColor), (Cd, decreaseColor)]
 
+-- Ejecuta el movimiendo a partir de la funcion que los mapea
 getExecute :: Move -> (TurtleState -> LSys -> TurtleState)
 getExecute m = snd (fromMaybe (undefined, moveForward) (find (\x -> fst x == m) moveExecuteMap))
 

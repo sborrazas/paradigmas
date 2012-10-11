@@ -70,32 +70,33 @@ parseEquiv = token '~' `build` (\x -> Equiv)
 
 -- 12
 recognizeTokens :: [String] -> [Token]
-recognizeTokens xs = map (\x -> fst (last (parseToken x))) xs
+recognizeTokens xs = map (fst.last.parseToken) xs
 
 -- 13
+-- Parsers que reciben token y devuelven el valor envuelto en el token (Int, String, Char, Move)
 parseIntToken :: Parse Token Int
 parseIntToken ((Num x):xs) = [(x, xs)]
-parseIntToken x = []
+parseIntToken _ = []
 
 parseStrToken :: Parse Token String
 parseStrToken ((Str x):xs) = [(x, xs)]
-parseStrToken x = []
+parseStrToken _ = []
 
 parseMoveToken :: Parse Token Move
 parseMoveToken ((Mv x):xs) = [(x, xs)]
-parseMoveToken x = []
+parseMoveToken _ = []
 
 parseChrToken :: Parse Token Char
 parseChrToken ((Chr x):xs) = [(x, xs)]
-parseChrToken x = []
+parseChrToken _ = []
 
 parseArrowToken :: Parse Token Token
 parseArrowToken (Arrow:xs) = [(Arrow, xs)]
-parseArrowToken x = []
+parseArrowToken _ = []
 
 parseEquivToken :: Parse Token Token
 parseEquivToken (Equiv:xs) = [(Equiv, xs)]
-parseEquivToken x = []
+parseEquivToken _ = []
 
 parseLSys :: Parse Token LSys
 parseLSys = (
@@ -121,19 +122,6 @@ parseLSys = (
       semilla -- Seed
       (reglasF reglas) -- Rules
       (mapeosF mapeos) -- Maps
-
---parseLSys :: Parse Token LSys
---parseLSys = ((nTimes 10 parseNum) >*> parseStr >*> (list (parseChr >*> parseArrow >*> parseStr)) >*> (list (parseChr >*> parseEquiv >*> parseMove))) `build` convertidorLsys
---  where
---    reglasF r = [(ch1, str1) | (Chr ch1, (_, Str str1)) <- r]
---    mapeosF m = [(ch1, mv1) | (Chr ch1, (_, Mv mv1)) <- m]
---    toWord8 :: Int -> Word8
---    toWord8 n = (read (show n)) :: Word8
---    toNum :: Token -> Int
---    toNum (Num n) = n
---    toFloat :: Token -> Float
---    toFloat (Num n) = fromIntegral n
---    convertidorLsys (numeros, (Str semilla, (reglas, mapeos))) = LSys (toFloat (numeros!!0)) (toFloat (numeros!!1)) (toNum (numeros!!2)) (toNum (numeros!!3)) (RGB (toWord8 (toNum (numeros!!4))) (toWord8 (toNum (numeros!!5))) (toWord8 (toNum (numeros!!6)))) ((toNum (numeros!!7)), (toNum (numeros!!8)), (toNum (numeros!!9))) semilla (reglasF reglas) (mapeosF mapeos)
 
 -- 14
 readLSys :: String -> LSys
